@@ -7,20 +7,21 @@ from lf_yolo_backbone import LFYOLO_Simplified
 class LFYOLO_WeldDefect(nn.Module):
     def __init__(self, nc=7):
         super().__init__()
-        self.yaml = 'lf_yolo_custom.yaml'
+        self.nc = nc
+        self.names = ['air hole', 'bite edge', 'broken arc', 'crack', 'overlap', 'slag inclusion', 'unfused']
+        self.stride = torch.tensor([8.0])
+        self.yaml = {'nc': nc, 'names': self.names}
+
         self.backbone = LFYOLO_Simplified()
-        # The backbone produces a very large number of channels (6144).
-        # Reduce to a practical number (e.g. 256) before the Detect head to
-        # avoid huge parameter counts and memory blowups while keeping the
-        # backbone architecture unchanged. This 1x1 conv + BN + SiLU mirrors
-        # a tiny channel-reduction head.
         self.reduce = nn.Sequential(
             nn.Conv2d(6144, 256, kernel_size=1, bias=False),
             nn.BatchNorm2d(256),
             nn.SiLU()
         )
 
-        self.detect = Detect(ch=[256], nc=nc)  # use reduced channel size for head
+        self.detect = Detect(ch=[256], nc=nc)
+        self.detect.stride = self.stride
+        self.model = nn.ModuleList([self.backbone, self.reduce, self.detect])
 
     def forward(self, x):
         x = self.backbone(x)

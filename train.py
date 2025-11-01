@@ -23,24 +23,24 @@ model = LFYOLO_WeldDefect(nc=7)
 model.to(DEVICE)
 print(f"[INFO] Model initialized with {sum(p.numel() for p in model.parameters()):,} parameters")
 
-# Ultralytics' YOLO() constructor often expects a weights path. Passing a
-# raw PyTorch module may trigger a FileNotFoundError (it treats the object
-# as a path string). To be robust, try to wrap the instance and fall back
-# to creating a YOLO wrapper from a small official checkpoint and then
-# replace its internal model with our custom model.
-try:
-    yolo = YOLO(model)
-except FileNotFoundError:
-    print('[INFO] YOLO() rejected the model instance; creating wrapper from yolov8n.pt and replacing its model')
-    yolo = YOLO('yolov8n.pt')  # will download if missing
-    # Replace the internal model with our custom model instance
-    yolo.model = model
+# Build YOLO training stack, then drop in our model
+yolo = YOLO('yolov8n.yaml')
+yolo.model = model
+
+# Ensure Ultralytics sees correct metadata
+yolo.model.nc = model.nc
+yolo.model.names = model.names
+yolo.model.stride = model.stride
+yolo.model.model[-1].nc = model.nc
+yolo.model.model[-1].stride = model.stride
+
 yolo.train(
     data=DATA_PATH,
     epochs=EPOCHS,
     imgsz=IMG_SIZE,
     batch=BATCH_SIZE,
-    device=DEVICE,
+    device=0,
+    workers=0,
     name="lf_yolo_weld_training",
     project="runs/detect",
     amp=AMP,
