@@ -15,11 +15,6 @@ dist/
 
 # Ignore IDE and editor settings
 .vscode/
-.idea/
 
 # Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/
-
-# Ignore system files
-.DS_Store
-Thumbs.db
