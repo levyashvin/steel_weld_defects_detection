@@ -1,22 +1,25 @@
-# Ignore Jupyter notebook checkpoints
-.ipynb_checkpoints/
-
-# Ignore entire dataset or heavy folder
-steel-pipe-weld-defect-detection/
-
-# Python cache and temporary files
+# Ignore Python cache files
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.tmp
-*.log
+*.py[cod]
+*$py.class
 
-# VSCode / PyCharm / other IDE configs
+# Ignore virtual environment folders
+venv/
+env/
+.venv/
+
+# Ignore build and distribution directories
+build/
+dist/
+*.egg-info/
+
+# Ignore IDE and editor settings
 .vscode/
 .idea/
 
-# OS-specific junk
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore system files
 .DS_Store
 Thumbs.db
-desktop.ini

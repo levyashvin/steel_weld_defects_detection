@@ -1,0 +1,21 @@
+# Core dependencies for custom YOLO training
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.2.0
+
+# Visualization and logging
+tensorboard
+matplotlib
+seaborn
+
+# Image handling
+opencv-python
+pillow
+
+# Optional: for rich metric tracking
+wandb
+
+# System utilities
+tqdm
+numpy
+pyyaml
