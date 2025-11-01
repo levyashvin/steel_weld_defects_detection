@@ -1,0 +1,3 @@
+
+Training on: CUDA (AMP=True)
+[INFO] Model initialized with 23,933,031 parameters

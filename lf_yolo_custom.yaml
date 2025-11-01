@@ -1,0 +1,28 @@
+nc: 7
+names:
+  - 'air hole'
+  - 'bite edge'
+  - 'broken arc'
+  - 'crack'
+  - 'overlap'
+  - 'slag inclusion'
+  - 'unfused'
+
+# NOTE:
+# This YAML contains only dataset/model metadata (class count and names).
+# If you are instantiating a PyTorch model and passing it to Ultralytics
+# via `YOLO(model)` (recommended for custom backbones), you do NOT need
+# to define the backbone/head architecture here. Keeping this file minimal
+# avoids mismatches between the YAML-specified architecture and your
+# Python model implementation.
+
+# Minimal backbone/head placeholders to satisfy Ultralytics' internal checks.
+# We use a 'Silence' backbone (no-op) so the trainer doesn't attempt to
+# construct a different architecture — your Python model instance will be
+# used instead when you pass it to `YOLO(model)` or replace `yolo.model`.
+backbone:
+  - [-1, 1, Silence, []]
+
+head:
+  - [[-1], 1, Detect, [7]
+    ]

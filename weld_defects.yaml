@@ -1,6 +1,0 @@
-# weld_defects.yaml
-train: datasets/weld_defects/images/train
-val: datasets/weld_defects/images/val
-
-nc: 7
-names: ['air hole', 'bite edge', 'broken arc', 'crack', 'overlap', 'slag inclusion', 'unfused']
