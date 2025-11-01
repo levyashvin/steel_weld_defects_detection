@@ -16,5 +16,19 @@ dist/
 # Ignore IDE and editor settings
 .vscode/
 
+<<<<<<< Updated upstream
 # Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+=======
+# OS-specific junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Ignore model training outputs and weights
+runs/
+*.pt
+
+.venv/
+env/
+>>>>>>> Stashed changes
