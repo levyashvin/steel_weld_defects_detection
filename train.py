@@ -23,8 +23,10 @@ model = LFYOLO_WeldDefect(nc=7)
 model.to(DEVICE)
 print(f"[INFO] Model initialized with {sum(p.numel() for p in model.parameters()):,} parameters")
 
-# Build YOLO training stack, then drop in our model
-yolo = YOLO('yolov8n.yaml')
+# Build YOLO training stack from a small checkpoint so Ultralytics sets up
+# its Trainer/Loss correctly, then drop in our custom model. Using a .pt
+# (not .yaml) ensures ckpt is populated and avoids rebuilding from cfg.
+yolo = YOLO('yolov8n.pt')
 yolo.model = model
 
 # Ensure Ultralytics sees correct metadata

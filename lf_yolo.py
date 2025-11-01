@@ -10,7 +10,15 @@ class LFYOLO_WeldDefect(nn.Module):
         self.nc = nc
         self.names = ['air hole', 'bite edge', 'broken arc', 'crack', 'overlap', 'slag inclusion', 'unfused']
         self.stride = torch.tensor([8.0])
-        self.yaml = {'nc': nc, 'names': self.names}
+        # Provide a minimal Ultralytics-style YAML dict so trainer logic that
+        # inspects keys like 'backbone' does not fail even though we inject a
+        # prebuilt model. The 'Silence' backbone is a no-op placeholder.
+        self.yaml = {
+            'nc': nc,
+            'names': self.names,
+            'backbone': [[-1, 1, 'Silence', []]],
+            'head': [[[ -1 ], 1, 'Detect', [nc]]],
+        }
 
         self.backbone = LFYOLO_Simplified()
         self.reduce = nn.Sequential(
