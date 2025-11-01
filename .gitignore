@@ -29,3 +29,5 @@ runs/
 
 .venv/
 env/
+
+report/
