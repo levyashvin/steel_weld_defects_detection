@@ -10,10 +10,11 @@ from ultralytics import YOLO
 from lf_yolo import LFYOLO_WeldDefect
 
 DATA_PATH = "weld_defects/weld_defects.yaml"
-EPOCHS = 2
-IMG_SIZE = 640
+# Full training configuration for RTX 4090 16GB
+EPOCHS = 200           # run a full training
+IMG_SIZE = 640         # standard YOLO size; stable and fast
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-BATCH_SIZE = 4 if DEVICE == "cuda" else 4
+BATCH_SIZE = -1        # AutoBatch: find the largest batch that fits
 AMP = DEVICE == "cuda"
 
 print(f"\nTraining on: {DEVICE.upper()} (AMP={AMP})")
@@ -42,7 +43,10 @@ yolo.train(
     imgsz=IMG_SIZE,
     batch=BATCH_SIZE,
     device=0,
-    workers=0,
+    workers=0,          # Windows-friendly dataloader
+    cos_lr=True,        # cosine LR schedule
+    patience=50,        # early stop patience (max epochs still 200)
+    save_period=10,     # save a checkpoint every 10 epochs
     name="lf_yolo_weld_training",
     project="runs/detect",
     amp=AMP,
