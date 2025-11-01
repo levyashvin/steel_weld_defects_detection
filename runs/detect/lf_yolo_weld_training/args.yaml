@@ -1,6 +1,6 @@
 task: detect
 mode: train
-model: yolov8n.yaml
+model: yolov8n.pt
 data: weld_defects/weld_defects.yaml
 epochs: 2
 time: null

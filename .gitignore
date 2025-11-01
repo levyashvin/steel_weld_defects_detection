@@ -19,6 +19,7 @@ env/
 runs/
 *.pt
 report/
+*.cache
 
 # OS-specific files
 .DS_Store
