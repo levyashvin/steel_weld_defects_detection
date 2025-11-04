@@ -28,7 +28,7 @@ def find_last_conv(module: nn.Module) -> Optional[nn.Conv2d]:
     return last_conv
 
 
-def pick_target_layer(model: nn.Module) -> nn.Module:
+def pick_target_layer(model: nn.Module, min_channels: int = 64) -> nn.Module:
     """Pick a robust conv layer for Grad-CAM.
 
     Preference order:
@@ -39,33 +39,53 @@ def pick_target_layer(model: nn.Module) -> nn.Module:
     # 1) reduce conv
     try:
         layer = getattr(model, "reduce")[0]
-        if isinstance(layer, nn.Conv2d):
-            return layer
         # Some Sequential blocks wrap conv at .conv
         if hasattr(layer, "conv") and isinstance(layer.conv, nn.Conv2d):
-            return layer.conv
+            layer = layer.conv
+        if isinstance(layer, nn.Conv2d) and getattr(layer, "out_channels", 0) >= min_channels:
+            return layer
     except Exception:
         pass
 
     # 2) backbone rich conv
     try:
         layer = model.backbone.s10.fuse.conv  # CBL(...).conv
-        if isinstance(layer, nn.Conv2d):
+        if isinstance(layer, nn.Conv2d) and getattr(layer, "out_channels", 0) >= min_channels:
             return layer
     except Exception:
         pass
 
     # 3) generic fallback
-    layer = find_last_conv(model)
+    # 3) search for the last Conv2d meeting minimum channels (and prefer k>=3)
+    candidates: list[nn.Conv2d] = []
+    for _, m in model.named_modules():
+        if isinstance(m, nn.Conv2d):
+            candidates.append(m)
+
+    # prefer higher channel convs and spatial kernels
+    for m in reversed(candidates):
+        k = m.kernel_size if hasattr(m, "kernel_size") else (1, 1)
+        if getattr(m, "out_channels", 0) >= min_channels and max(k) >= 3:
+            return m
+
+    # fallback: any conv with enough channels
+    for m in reversed(candidates):
+        if getattr(m, "out_channels", 0) >= min_channels:
+            return m
+
+    # last resort: any last conv
+    layer = candidates[-1] if candidates else None
     if layer is None:
         raise RuntimeError("No Conv2d layer found to use for Grad-CAM.")
     return layer
 
 
 class GradCAM:
-    def __init__(self, model: nn.Module, target_layer: nn.Module):
+    def __init__(self, model: nn.Module, target_layer: nn.Module, score_mode: str = "auto", use_relu: bool = True):
         self.model = model
         self.target_layer = target_layer
+        self.score_mode = score_mode  # 'auto' | 'logit' | 'sigmoid' | 'absmax'
+        self.use_relu = use_relu
         self.activations: Optional[torch.Tensor] = None
         self.gradients: Optional[torch.Tensor] = None
 
@@ -93,20 +113,44 @@ class GradCAM:
         # Tensor case
         if isinstance(out, torch.Tensor):
             if out.ndim >= 2 and out.shape[-1] >= 5:
-                return out[..., 4].sigmoid().max()
-            # generic
-            return out.sigmoid().max() if out.is_floating_point() else out.abs().max()
+                if self.score_mode == "logit":
+                    return out[..., 4].max()
+                elif self.score_mode == "sigmoid":
+                    return out[..., 4].sigmoid().max()
+                elif self.score_mode == "absmax":
+                    return out[..., 4].abs().max()
+                else:  # auto
+                    return out[..., 4].max()
+            # generic tensor
+            if self.score_mode == "sigmoid":
+                return out.sigmoid().max() if out.is_floating_point() else out.abs().max()
+            elif self.score_mode == "absmax":
+                return out.abs().max()
+            else:  # auto/logit
+                return out.max() if out.is_floating_point() else out.abs().max()
 
         # List/Tuple case
         if isinstance(out, (list, tuple)):
             # Prefer a YOLO-like detection tensor
             for o in out:
                 if isinstance(o, torch.Tensor) and o.ndim >= 2 and o.shape[-1] >= 5:
-                    return o[..., 4].sigmoid().max()
+                    if self.score_mode == "logit":
+                        return o[..., 4].max()
+                    elif self.score_mode == "sigmoid":
+                        return o[..., 4].sigmoid().max()
+                    elif self.score_mode == "absmax":
+                        return o[..., 4].abs().max()
+                    else:
+                        return o[..., 4].max()
             # Fallback: any tensor
             for o in out:
                 if isinstance(o, torch.Tensor):
-                    return o.sigmoid().max() if o.is_floating_point() else o.abs().max()
+                    if self.score_mode == "sigmoid":
+                        return o.sigmoid().max() if o.is_floating_point() else o.abs().max()
+                    elif self.score_mode == "absmax":
+                        return o.abs().max()
+                    else:  # auto/logit
+                        return o.max() if o.is_floating_point() else o.abs().max()
 
         # Final fallback (should rarely happen)
         raise RuntimeError("Could not determine a scalar score to backprop from model outputs.")
@@ -144,7 +188,8 @@ class GradCAM:
         # Global-average-pool gradients -> weights per channel
         weights = grads.mean(dim=(2, 3), keepdim=True)  # [1, C, 1, 1]
         cam = (weights * acts).sum(dim=1, keepdim=True)  # [1, 1, h, w]
-        cam = F.relu(cam)
+        if self.use_relu:
+            cam = F.relu(cam)
         cam = F.interpolate(cam, size=input_tensor.shape[2:], mode="bilinear", align_corners=False)
         cam = cam.squeeze().cpu().numpy()
         cam -= cam.min()
@@ -285,4 +330,3 @@ def overlay_and_show(
         plt.show()
     else:
         plt.close(fig)
-
