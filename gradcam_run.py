@@ -3,7 +3,7 @@ Run Grad-CAM on a YOLO/LF-YOLO model checkpoint and visualize heatmaps.
 
 Usage:
   python gradcam_run.py --model model.pt --image image.jpg \
-      [--imgsz 640] [--conf 0.25] [--device cuda] [--layer auto|reduce|backbone]
+      [--imgsz 640] [--conf 0.25] [--device cuda] [--layer auto|reduce|backbone] [--no-boxes]
 
 This script:
   - Loads your checkpoint via Ultralytics YOLO wrapper when possible (to get boxes easily)
@@ -58,6 +58,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--iou", type=float, default=0.7, help="IoU threshold for NMS in Ultralytics inference")
     p.add_argument("--save", default="gradcam_overlay.png", help="Path to save overlay image")
     p.add_argument("--no-show", action="store_true", help="Do not display interactive plot")
+    p.add_argument("--no-boxes", action="store_true", help="Do not draw detection boxes on the overlay")
     return p.parse_args()
 
 
@@ -162,6 +163,12 @@ def main():
         print("Ultralytics YOLO wrapper unavailable; skipping boxes overlay.")
 
     # Visualize/Save
+    # Optionally hide boxes
+    if args.no_boxes:
+        boxes = None
+        labels = None
+        scores = None
+
     overlay_and_show(
         orig_pil,
         cam_square=cam,
